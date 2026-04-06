@@ -50,14 +50,18 @@ const password_schema = {
 // 导出文章的校验规则
 const article_schema = {
   body: {
-    title: Joi.string().min(1).max(50).required().message({
+    title: Joi.string().min(1).max(50).required().messages({
       "string.base": "文章标题必须是字符串",
       "string.min": "文章标题长度不能小于1个字符",
       "string.max": "文章标题长度不能大于50个字符",
       "any.required": "文章标题不能为空",
     }),
-    author: Joi.string().required().message("文章作者不能为空"),
+    author: Joi.string().required().messages({
+      "any.required": "文章作者不能为空",
+    }),
     status: Joi.string().valid("已发布", "草稿").default("草稿"),
+    id: Joi.number().integer().min(1),
+    content: Joi.string().allow(""),
   },
 };
 

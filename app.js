@@ -5,6 +5,7 @@ const userInfoRouter = require("./router/userInfo");
 const { expressjwt: expressJWT } = require("express-jwt");
 const secret = require("./config/index");
 const swaggerSetup = require("./swagger");
+const articleRouter = require("./router/article");
 
 const app = express();
 // 跨域请求的中间件
@@ -40,6 +41,7 @@ app.use(
 // 配置路由对象 - 并配置路由前缀
 app.use("/api", router.router);
 app.use("/my", userInfoRouter); // my路径开头的需要进行token验证
+app.use("/api", articleRouter);
 
 // 配置 swagger
 swaggerSetup(app);

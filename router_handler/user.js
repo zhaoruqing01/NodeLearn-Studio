@@ -49,7 +49,7 @@ exports.regUser = (req, res) => {
           status: 0,
           message: "注册成功",
         });
-      }
+      },
     );
   });
 };
@@ -67,7 +67,7 @@ exports.login = (req, res) => {
     // 将密码和加密的后的密码进行对比
     const isValidPassword = bcrypt.compareSync(
       userInfo.password,
-      results.password
+      results.password,
     );
     if (!isValidPassword) {
       return req.cc("密码错误");
@@ -79,7 +79,7 @@ exports.login = (req, res) => {
       secretKey,
       {
         expiresIn: "1h",
-      }
+      },
     );
     if (isValidPassword) {
       res.send({
