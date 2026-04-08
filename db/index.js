@@ -1,4 +1,4 @@
-const mysql = require("mysql2");
+const mysql = require("mysql2/promise");
 
 // 配置数据库连接
 const db = mysql.createPool({

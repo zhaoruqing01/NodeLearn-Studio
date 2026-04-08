@@ -9,7 +9,7 @@ const article_handler = require("../router_handler/article");
 
 /**
  * @swagger
- * /my/articles:
+ * /api/articles:
  *   get:
  *     summary: Get article list with pagination
  *     tags: [Article]
@@ -104,7 +104,7 @@ router.get("/articles", article_handler.getArticleList);
 
 /**
  * @swagger
- * /my/addArticle:
+ * /api/addArticle:
  *   post:
  *     summary: Add a new article
  *     tags: [Article]
@@ -188,7 +188,7 @@ router.post(
 
 /**
  * @swagger
- * /my/delArticle:
+ * /api/delArticle:
  *   post:
  *     summary: Delete an article
  *     tags: [Article]
@@ -261,7 +261,7 @@ router.post(
 
 /**
  * @swagger
- * /my/updateArticle:
+ * /api/updateArticle:
  *   post:
  *     summary: Update an article
  *     tags: [Article]

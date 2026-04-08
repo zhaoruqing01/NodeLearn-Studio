@@ -6,6 +6,7 @@ const { expressjwt: expressJWT } = require("express-jwt");
 const secret = require("./config/index");
 const swaggerSetup = require("./swagger");
 const articleRouter = require("./router/article");
+const bffRouter = require("./router/bff");
 
 const app = express();
 // 跨域请求的中间件
@@ -42,6 +43,7 @@ app.use(
 app.use("/api", router.router);
 app.use("/my", userInfoRouter); // my路径开头的需要进行token验证
 app.use("/api", articleRouter);
+app.use("/api", bffRouter);
 
 // 配置 swagger
 swaggerSetup(app);
