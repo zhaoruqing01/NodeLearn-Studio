@@ -24,6 +24,8 @@
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
-    "axios": "^1.14.0"
+    "axios": "^1.14.0",
+    "cheerio": "^1.2.0",
+    "ioredis": "^5.10.1"
   }
 }

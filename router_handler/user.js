@@ -9,34 +9,34 @@ exports.regUser = async (req, res) => {
   // 新增注册
   // 表单校验
   const selStr = "SELECT * FROM ev_user WHERE username = ?";
-  
+
   try {
     const [results] = await db.query(selStr, [userInfo.username]);
-    
+
     if (results.length > 0) {
       return res.send({
         status: -1,
         message: "用户名已存在",
       });
     }
-    
+
     // 对用户的密码进行 bcrype 加密，返回值是加密之后的密码字符串
     userInfo.password = bcrypt.hashSync(userInfo.password, 10);
-    
+
     // 校验通过则插入数据
     const inrStr = "INSERT INTO ev_user SET ?";
     const [insertResults] = await db.query(inrStr, {
       username: userInfo.username,
       password: userInfo.password,
     });
-    
+
     if (insertResults.affectedRows !== 1) {
       return res.send({
         status: -1,
         message: "注册失败",
       });
     }
-    
+
     // 注册成功，发送响应
     res.send({
       status: 0,
@@ -55,20 +55,20 @@ exports.regUser = async (req, res) => {
 exports.login = async (req, res) => {
   const userInfo = req.body;
   const selStr = "SELECT * FROM ev_user WHERE username = ?";
-  
+
   try {
     const [data] = await db.query(selStr, userInfo.username);
-    
+
     if (data.length === 0) return req.cc("用户名不存在", -1);
-    
+
     const results = data[0];
-    
+
     // 将密码和加密的后的密码进行对比
     const isValidPassword = bcrypt.compareSync(
       userInfo.password,
       results.password,
     );
-    
+
     if (!isValidPassword) {
       return req.cc("密码错误");
     }
@@ -81,7 +81,7 @@ exports.login = async (req, res) => {
         expiresIn: "1h",
       },
     );
-    
+
     if (isValidPassword) {
       res.send({
         status: 0,

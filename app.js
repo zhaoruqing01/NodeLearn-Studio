@@ -35,15 +35,15 @@ app.use(
     algorithms: ["HS256"],
     requestProperty: "user",
   }).unless({
-    path: [/^\/api\//, /^\/api-docs/],
+    path: [/^\/api\//, /^\/api-docs/, /^\/user/],
   }),
 );
 
 // 配置路由对象 - 并配置路由前缀
-app.use("/api", router.router);
+app.use("/user", router.router); // 登录接口
 app.use("/my", userInfoRouter); // my路径开头的需要进行token验证
 app.use("/api", articleRouter);
-app.use("/api", bffRouter);
+app.use("/bff", bffRouter);
 
 // 配置 swagger
 swaggerSetup(app);
