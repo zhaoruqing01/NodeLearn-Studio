@@ -6,7 +6,7 @@ const expressJoi = require("@escook/express-joi");
 const Joi = require("joi");
 
 // 配置注册表单校验
-const username = Joi.string().alphanum().min(1).max(12).required();
+const username = Joi.string().min(1).max(12).required();
 const password = Joi.string()
   .alphanum()
   .pattern(/^[\S]{6,12}$/)

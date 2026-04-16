@@ -7,6 +7,9 @@ const secret = require("./config/index");
 const swaggerSetup = require("./swagger");
 const articleRouter = require("./router/article");
 const bffRouter = require("./router/bff");
+const initSocket = require("./utils/scoket");
+const http = require("http"); // 新增：Node.js 内置 http 模块
+const { Server } = require("socket.io"); // 新增：Socket.IO 服务端
 
 const app = express();
 // 跨域请求的中间件
@@ -15,6 +18,11 @@ app.use(cors());
 app.use(express.json());
 // 处理application/x-www-form-urlencoded格式的中间件
 app.use(express.urlencoded({ extended: false }));
+
+// 配置Scoket.IO服务
+const server = http.createServer(app);
+// 这一部分是为了初始化Scoket.IO服务,并返回一个io对象,为以后可能使用 --Derbao说
+const io = initSocket(server);
 
 // 配置错误处理函数
 app.use(function (req, res, next) {
@@ -71,6 +79,8 @@ app.use(function (err, req, res, next) {
   });
 });
 
-app.listen(3007, () => {
+// 启动服务
+server.listen(3007, () => {
   console.log("服务启动了 http://127.0.0.1:3007");
+  console.log("Scoket.Io服务已启动");
 });
