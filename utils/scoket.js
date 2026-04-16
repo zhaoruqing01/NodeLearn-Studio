@@ -4,7 +4,10 @@ const db = require("../db");
 /**
  * 设计思路
  * 1. 需要保留公共群聊功能, 房间名为public
- * 2. 需要有群聊隔离功能
+ * 2. 需要有群聊隔离功能 - join和io.to(roomName).emit()共同实现了群聊隔离功能
+ *  - joinGroup: 加入群聊房间,决定你能不能收到消息,只有进入这个房间才能收到消息
+ *  - quitGroup: 退出群聊房间,决定你能不能收到消息,退出房间就收不到消息了
+ *  - sendGroupMsg: 发送群聊消息,决定你能不能收到消息,io.to(roomName).emit("receiveGroupMsg", {}),将消息发送给房间
  * */
 
 // 初始化socket.io服务
@@ -35,6 +38,7 @@ const initSocket = (server) => {
       socket.join(roomName);
 
       // 群内广播
+      // socket表示当前用户的连接(每个人都是不一样的,所有也就代表你自己),就像是你自己在喊,"大家快看我,我加入群聊了"
       socket.to(roomName).emit("systemMsg", {
         content: "新成员加入群聊",
         type: "join",
@@ -47,7 +51,8 @@ const initSocket = (server) => {
     // 监听quitGroup,退出群聊事件
     socket.on("quitGroup", (groupId) => {
       const roomName = `group_${groupId}`;
-      //  这是,应该是表示推迟当讲房间的socket连接
+      // 退出房间
+      // socket表示当前用户的连接(每个人都是不一样的,所有也就代表你自己),房间名是group_${groupId}
       socket.leave(roomName);
       socket.to(roomName).emit("systemMsg", {
         content: "成员退出群聊",
@@ -69,6 +74,7 @@ const initSocket = (server) => {
         );
 
         // 这一步是转发操作,发送给公共房间
+        // io发送给所有人,包括发送者自己,因为你自己也要看到你自己的消息,io相当于整个系统
         io.to("public").emit("receivePublicMsg", {
           userId,
           username,
@@ -95,7 +101,7 @@ const initSocket = (server) => {
           [groupId, userId, username, content],
         );
 
-        // 只发给当前群
+        // 只发给当前群,并且是只发给join房间的人
         io.to(roomName).emit("receiveGroupMsg", {
           groupId,
           userId,
