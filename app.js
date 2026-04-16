@@ -6,6 +6,7 @@ const { expressjwt: expressJWT } = require("express-jwt");
 const secret = require("./config/index");
 const swaggerSetup = require("./swagger");
 const articleRouter = require("./router/article");
+const groupRouter = require("./router/group");
 const bffRouter = require("./router/bff");
 const initSocket = require("./utils/scoket");
 const http = require("http"); // 新增：Node.js 内置 http 模块
@@ -43,7 +44,7 @@ app.use(
     algorithms: ["HS256"],
     requestProperty: "user",
   }).unless({
-    path: [/^\/api\//, /^\/api-docs/, /^\/user/],
+    path: [/^\/api-docs/, /^\/user/],
   }),
 );
 
@@ -52,6 +53,7 @@ app.use("/user", router.router); // 登录接口
 app.use("/my", userInfoRouter); // my路径开头的需要进行token验证
 app.use("/api", articleRouter);
 app.use("/bff", bffRouter);
+app.use("/api", groupRouter);
 
 // 配置 swagger
 swaggerSetup(app);
@@ -80,7 +82,7 @@ app.use(function (err, req, res, next) {
 });
 
 // 启动服务
-server.listen(3007, () => {
-  console.log("服务启动了 http://127.0.0.1:3007");
+server.listen(3007, "localhost", () => {
+  console.log("服务启动了 http://localhost:3007");
   console.log("Scoket.Io服务已启动");
 });

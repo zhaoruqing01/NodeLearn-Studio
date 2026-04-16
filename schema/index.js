@@ -65,9 +65,29 @@ const article_schema = {
   },
 };
 
+// 创建群聊表的校验规则
+const group_schema = {
+  body: {
+    group_name: Joi.string().min(1).required().messages({
+      "string.base": "群聊名称必须是字符串",
+      "string.min": "群聊名称长度不能小于1个字符",
+      "any.required": "群聊名称不能为空",
+    }),
+    owner_id: Joi.number().integer().required().messages({
+      "any.required": "群聊创建人不能为空",
+    }),
+    create_time: Joi.date().required().messages({
+      "any.required": "群聊创建时间不能为空",
+    }),
+    is_deleted: Joi.boolean().default(false).required().messages({
+      "any.required": "群聊是否删除不能为空",
+    }),
+  },
+};
 module.exports = {
   regUser_login_schema,
   userInfo_schema,
   password_schema,
   article_schema,
+  group_schema,
 };

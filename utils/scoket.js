@@ -1,7 +1,15 @@
 const { Server } = require("socket.io"); // 新增：Socket.IO 服务端
+const db = require("../db");
 
-// 初始哈Scoket.IO服务的函数
+/**
+ * 设计思路
+ * 1. 需要保留公共群聊功能, 房间名为public
+ * 2. 需要有群聊隔离功能
+ * */
+
+// 初始化socket.io服务
 const initSocket = (server) => {
+  // 初始化跨域和请求方法
   const io = new Server(server, {
     cors: {
       origin: "*",
@@ -9,31 +17,101 @@ const initSocket = (server) => {
     },
   });
 
-  // 所有的Scokeet.IO逻辑都写在这里
-  io.on("connection", (scoket) => {
-    console.log("新用户连接: ID", scoket.id);
+  // socket的起点,先确认连接
+  io.on("connection", (socket) => {
+    console.log("新用户连接: ", socket.id);
 
-    // 聊天消息
-    scoket.on("chat message", (data) => {
-      console.log("接收到消息:", data);
-      io.emit("chat message", {
-        ...data,
-        userId: scoket.id,
+    // ==============
+    // 公共房间,如果用户不主动切换,则默认进入的是公共聊天室
+    // ==============
+    socket.join("public");
+
+    // ==============
+    // 1. 加入 群聊房间 (隔离群聊,用户主动切换房间)
+    // ==============
+    // 监听joinGroup
+    socket.on("joinGroup", async (groupId) => {
+      const roomName = `group_${groupId}`;
+      socket.join(roomName);
+
+      // 群内广播
+      socket.to(roomName).emit("systemMsg", {
+        content: "新成员加入群聊",
+        type: "join",
       });
     });
 
-    // 直播间房间,其实就是不同的群聊,根据不同的群聊实现通信间的隔离
-    scoket.on("join room", (roomId) => {
-      scoket.join(roomId);
-      io.to(roomId).emit("system notice", "有新观众进入直播间");
+    // ==============
+    // 2. 退出 群聊房间
+    // ==============
+    // 监听quitGroup,退出群聊事件
+    socket.on("quitGroup", (groupId) => {
+      const roomName = `group_${groupId}`;
+      //  这是,应该是表示推迟当讲房间的socket连接
+      socket.leave(roomName);
+      socket.to(roomName).emit("systemMsg", {
+        content: "成员退出群聊",
+        type: "quit",
+      });
     });
-    // 弹幕
-    scoket.on("send danmu", (data) => {
-      io.to(data.roomId).emit("receive danmu", data);
+
+    // ==============
+    // 3. 发送 公共消息
+    // ==============
+    // 监听前端发送的公共消息
+    socket.on("sendPublicMsg", async (data) => {
+      try {
+        const { userId, username, content } = data;
+        // 保存到消息表(还得新增个返回群聊消息的接口)
+        await db.query(
+          "INSERT INTO messages (group_id, user_id, username, content) VALUES (0, ?, ?, ?)",
+          [userId, username, content],
+        );
+
+        // 这一步是转发操作,发送给公共房间
+        io.to("public").emit("receivePublicMsg", {
+          userId,
+          username,
+          content,
+          sendTime: new Date(),
+        });
+      } catch (error) {
+        console.log("公共消息发送失败", err);
+      }
     });
+
+    // ==============
+    // 4. 发送 群聊消息
+    // ==============
+    // 监听前端发送的群消息,并将对应群发送的消息转发到对应群
+    socket.on("sendGroupMsg", async (data) => {
+      try {
+        const { groupId, userId, username, content } = data;
+        const roomName = `group_${groupId}`;
+
+        // 保存到数据库
+        await db.query(
+          "INSERT INTO messages (group_id, user_id, username, content) VALUES (?, ?, ?, ?)",
+          [groupId, userId, username, content],
+        );
+
+        // 只发给当前群
+        io.to(roomName).emit("receiveGroupMsg", {
+          groupId,
+          userId,
+          username,
+          content,
+          sendTime: new Date(),
+        });
+      } catch (error) {
+        console.log("群消息发送失败", error);
+      }
+    });
+    // ==============================================
     // 断开连接
-    scoket.on("disconnect", () => {
-      console.log("用户断开连接: ID", scoket.id);
+    // ==============================================
+    socket.on("disconnect", () => {
+      console.log("用户断开：", socket.id);
     });
   });
   return io;
