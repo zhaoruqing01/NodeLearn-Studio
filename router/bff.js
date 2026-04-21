@@ -54,6 +54,6 @@ const bff_hanlder = require("../router_handler/bff");
 router.get("/bff", bff_hanlder.handleBFF);
 
 // 批量代理转发接口
-router.post(/^\/api\/(.*)/, bff_hanlder.handleBFFBatch);
+// router.post(/^\/api\/(.*)/, bff_hanlder.handleBFFBatch);
 
 module.exports = router;

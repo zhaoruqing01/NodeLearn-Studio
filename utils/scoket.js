@@ -12,7 +12,7 @@ const initSocket = (server, app) => {
     },
   });
   async function notifyFriendsStatus(userId, isOnline) {
-    // 1. 查询该用户的所有好友ID
+    // 1. 查询该用户的所有在线好友ID
     const [friendList] = await db.query(
       `SELECT friend_id FROM user_friends 
      WHERE user_id = ? AND status = 1`,
@@ -22,9 +22,9 @@ const initSocket = (server, app) => {
     // 2. 挨个推送状态给好友
     friendList.forEach((item) => {
       const friendId = item.friend_id;
-      io.to(`user:${friendId}`).emit("friend:status:change", {
+      io.to(`user_${friendId}`).emit("friend:status:change", {
         targetUserId: userId,
-        online: isOnline,
+        isOnline: isOnline,
       });
     });
   }
@@ -94,6 +94,38 @@ const initSocket = (server, app) => {
       }
     });
 
+    // 5. 私发消息
+    socket.on("sendPrivateMsg", async (data) => {
+      try {
+        // 给谁发的 , 谁发的 , 谁发的名字, 谁发的内容, 发送时间
+        const { toUserId, fromUserId, fromUsername, content, sendTime } = data;
+        console.log(data, "data");
+
+        await db.query(
+          "INSERT INTO messages (group_id, to_user_id, user_id, username, content, send_time) VALUES (?, ?, ?, ?, ?, ?)",
+          [-1, toUserId, fromUserId, fromUsername, content, sendTime],
+        );
+        // 给好友发
+        io.to(`user_${toUserId}`).emit("receivePrivateMsg", {
+          toUserId,
+          fromUserId,
+          fromUsername,
+          content,
+          sendTime,
+        });
+        // 给自己发
+        io.to(`user_${fromUserId}`).emit("receivePrivateMsg", {
+          toUserId,
+          fromUserId,
+          fromUsername,
+          content,
+          sendTime,
+        });
+      } catch (error) {
+        console.log("私发消息发送失败", error);
+      }
+    });
+
     // ====================== 修复点1：统一在线事件名 ======================
     socket.on("user:online", async (data) => {
       const { userId, username } = data;
@@ -139,8 +171,10 @@ const initSocket = (server, app) => {
 
         // 4. 查询是否已存在好友关系
         const [rows2] = await db.query(
-          "SELECT * FROM user_friends WHERE user_id = ? AND friend_id = ?",
-          [userId, friendId],
+          `SELECT * FROM user_friends
+   WHERE (user_id = ? AND friend_id = ?)
+   OR (user_id = ? AND friend_id = ?)`,
+          [userId, friendId, friendId, userId],
         );
 
         // ==============================================
@@ -251,8 +285,29 @@ const initSocket = (server, app) => {
     });
 
     // 断开连接
-    socket.on("disconnect", () => {
+    socket.on("disconnect", async () => {
       console.log("用户断开：", socket.id);
+      const userId = socket.userId;
+      if (!userId) {
+        return;
+      }
+
+      // 多端在线计数-1
+      const currentCount = onlineUserMap.get(userId) || 0;
+      const newCount = currentCount - 1;
+      if (newCount <= 0) {
+        // 所有端都下线 -> 标记离线
+        onlineUserMap.delete(userId);
+        // 更新最后在线时间
+        await db.query("UPDATE ev_user SET last_online_time = ? WHERE id = ?", [
+          new Date(),
+          userId,
+        ]);
+        // 推送离线提示
+        await notifyFriendsStatus(userId, false);
+      } else {
+        onlineUserMap.set(userId, newCount);
+      }
     });
   });
   return io;

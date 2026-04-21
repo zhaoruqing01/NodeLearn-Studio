@@ -1,3 +1,5 @@
+require("dotenv").config();
+
 const express = require("express");
 const cors = require("cors");
 const router = require("./router/user");
@@ -87,7 +89,9 @@ app.use(function (err, req, res, next) {
 });
 
 // 启动服务
-server.listen(3007, "localhost", () => {
-  console.log("服务启动了 http://localhost:3007");
+server.listen(process.env.VITE_BASE_PORT, "localhost", () => {
+  console.log(
+    `服务启动了 ${process.env.VITE_BASE_URL}:${process.env.VITE_BASE_PORT}`,
+  );
   console.log("Scoket.Io服务已启动");
 });
