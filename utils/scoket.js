@@ -58,16 +58,30 @@ const initSocket = (server, app) => {
     socket.on("sendPublicMsg", async (data) => {
       try {
         const { userId, username, content } = data;
-        await db.query(
-          "INSERT INTO messages (group_id, user_id, username, content) VALUES (0, ?, ?, ?)",
-          [userId, username, content],
-        );
-        io.to("public").emit("receivePublicMsg", {
-          userId,
-          username,
-          content,
-          sendTime: new Date(),
-        });
+
+        // 分别处理下普通用户数据和ai流式数据
+        if (userId !== -1) {
+          await db.query(
+            "INSERT INTO messages (group_id, user_id, username, content) VALUES (0, ?, ?, ?)",
+            [userId, username, content],
+          );
+          io.to("public").emit("receivePublicMsg", {
+            userId,
+            username,
+            content,
+            isStreaming: false,
+            sendTime: new Date(),
+          });
+        } else {
+          // 如果是机器人消息，直接广播（存库逻辑在 aigc-robot.js 中处理，避免重复存库）
+          // io.to("public").emit("receivePublicMsg", {
+          //   userId,
+          //   username,
+          //   content,
+          //   isStreaming: true,
+          //   sendTime: new Date(),
+          // });
+        }
       } catch (err) {
         console.log("公共消息发送失败", err);
       }

@@ -24,6 +24,11 @@ exports.getRobotChatHandler = async (req, res) => {
     res.flushHeaders();
     // 存库用
     let fullAnswer = "";
+    // 为当前这次 AI 对话生成一个唯一的消息 ID
+    const msgId =
+      "ai_" + Date.now() + "_" + Math.random().toString(36).substr(2, 4);
+    // 获取 socket.io 实例
+    const io = req.app.get("io");
     try {
       // 调用OpenAI封装好的 API获取回复
       // completion 流式输出对象，并非直接返回完整内容，而是分块返回
@@ -38,7 +43,19 @@ exports.getRobotChatHandler = async (req, res) => {
         // 存库用
         fullAnswer += content;
         // 每次把片段推送给前端，流式输出有固定格式data: 内容\n\n
-        res.write(`data: ${JSON.stringify({ content })}\n\n`);
+        res.write(`data: ${JSON.stringify({ content, msgId })}\n\n`);
+
+        // 同步广播到公共群聊
+        if (io) {
+          io.to("public").emit("receivePublicMsg", {
+            msgId, // 携带 msgId，方便前端识别是同一条消息的不同片段
+            userId: -1,
+            username: "小艺",
+            content: content,
+            isStreaming: true, // 标识这是流式输出
+            sendTime: new Date(),
+          });
+        }
       }
 
       // ai输出结束后，存储到数据库中
@@ -47,10 +64,25 @@ exports.getRobotChatHandler = async (req, res) => {
         [-1, "小艺", fullAnswer || ""],
       );
       // 通知前端ai输出结束
-      res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
+      res.write(`data: ${JSON.stringify({ done: true, msgId })}\n\n`);
+
+      // 同步广播结束状态到公共群聊
+      if (io) {
+        io.to("public").emit("receivePublicMsg", {
+          msgId,
+          userId: -1,
+          username: "小艺",
+          content: "",
+          isStreaming: false,
+          done: true,
+          sendTime: new Date(),
+        });
+      }
 
       res.end();
-    } catch (error) {}
+    } catch (error) {
+      console.error("AI生成失败:", error);
+    }
   } catch (error) {
     return res.cc(error);
   }

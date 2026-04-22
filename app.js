@@ -31,6 +31,7 @@ app.onlineUserMap = new Map();
 const server = http.createServer(app);
 // 这一部分是为了初始化Scoket.IO服务,并返回一个io对象,为以后可能使用 --Derbao说
 const io = initSocket(server, app); // 将全局状态传入socket中,路由中通过req.app使用
+app.set("io", io); // 将 io 挂载到 app 上，方便在路由处理函数中通过 req.app.get('io') 获取
 
 // 配置错误处理函数
 app.use(function (req, res, next) {
