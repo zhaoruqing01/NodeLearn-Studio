@@ -12,6 +12,8 @@ const initSocket = (server, app) => {
     },
   });
   async function notifyFriendsStatus(userId, isOnline) {
+    console.log(userId, isOnline, "isOnline");
+
     // 1. 查询该用户的所有在线好友ID
     const [friendList] = await db.query(
       `SELECT friend_id FROM user_friends 
@@ -59,7 +61,7 @@ const initSocket = (server, app) => {
       try {
         const { userId, username, content } = data;
 
-        // 分别处理下普通用户数据和ai流式数据
+        // 分别处理下普通用户数据和ai流式数据,貌似是冗余操作
         if (userId !== -1) {
           await db.query(
             "INSERT INTO messages (group_id, user_id, username, content) VALUES (0, ?, ?, ?)",
@@ -73,14 +75,6 @@ const initSocket = (server, app) => {
             sendTime: new Date(),
           });
         } else {
-          // 如果是机器人消息，直接广播（存库逻辑在 aigc-robot.js 中处理，避免重复存库）
-          // io.to("public").emit("receivePublicMsg", {
-          //   userId,
-          //   username,
-          //   content,
-          //   isStreaming: true,
-          //   sendTime: new Date(),
-          // });
         }
       } catch (err) {
         console.log("公共消息发送失败", err);
@@ -311,12 +305,14 @@ const initSocket = (server, app) => {
       const newCount = currentCount - 1;
       if (newCount <= 0) {
         // 所有端都下线 -> 标记离线
+        console.log("离线了");
         onlineUserMap.delete(userId);
         // 更新最后在线时间
         await db.query("UPDATE ev_user SET last_online_time = ? WHERE id = ?", [
           new Date(),
           userId,
         ]);
+
         // 推送离线提示
         await notifyFriendsStatus(userId, false);
       } else {

@@ -21,6 +21,7 @@ exports.getRobotChatHandler = async (req, res) => {
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
     res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("X-Accel-Buffering", "no");
     res.flushHeaders();
     // 存库用
     let fullAnswer = "";
@@ -38,24 +39,32 @@ exports.getRobotChatHandler = async (req, res) => {
         stream: true, // 开启流式输出
       });
       for await (const chunk of completion) {
-        // 取出ai返回的内容片段
-        const content = chunk.choices[0].delta.content || "";
-        // 存库用
-        fullAnswer += content;
-        // 每次把片段推送给前端，流式输出有固定格式data: 内容\n\n
+        const content = chunk.choices[0]?.delta.content || "";
+        if (!content) continue; // 跳过空内容，优化性能
+
+        // 1. SSE 推送（核心，必须优先同步执行）
         res.write(`data: ${JSON.stringify({ content, msgId })}\n\n`);
 
-        // 同步广播到公共群聊
-        if (io) {
-          io.to("public").emit("receivePublicMsg", {
-            msgId, // 携带 msgId，方便前端识别是同一条消息的不同片段
-            userId: -1,
-            username: "小艺",
-            content: content,
-            isStreaming: true, // 标识这是流式输出
-            sendTime: new Date(),
-          });
-        }
+        // 2. 🔥 Node.js 原生强制刷新缓冲区（让SSE立即发出去）
+        res.cork();
+        res.uncork();
+
+        // 3. 拼接完整内容
+        fullAnswer += content;
+
+        // 4. 🔥 关键：Socket广播改为异步微任务，不阻塞SSE发送
+        process.nextTick(() => {
+          if (io) {
+            io.to("public").emit("receivePublicMsg", {
+              msgId,
+              userId: -1,
+              username: "小艺",
+              content: content,
+              isStreaming: true,
+              sendTime: new Date(),
+            });
+          }
+        });
       }
 
       // ai输出结束后，存储到数据库中
