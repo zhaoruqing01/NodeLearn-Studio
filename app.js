@@ -12,6 +12,7 @@ const groupRouter = require("./router/group");
 const bffRouter = require("./router/bff");
 const userFriendsRouter = require("./router/userFriends");
 const aigcRobotRouter = require("./router/aigc-robot");
+const aiFormRouter = require("./router/ai-form");
 const initSocket = require("./utils/scoket");
 const http = require("http"); // 新增：Node.js 内置 http 模块
 const { Server } = require("socket.io"); // 新增：Socket.IO 服务端
@@ -64,6 +65,7 @@ app.use("/bff", bffRouter);
 app.use("/api", groupRouter);
 app.use("/api", userFriendsRouter);
 app.use("/ai", aigcRobotRouter);
+app.use("/ai", aiFormRouter);
 
 // 配置 swagger
 swaggerSetup(app);
