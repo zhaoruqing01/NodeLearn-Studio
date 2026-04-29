@@ -9,7 +9,7 @@ const client = new OpenAI({
 });
 exports.aiFormHandler = async (req, res) => {
   try {
-    const { prompt } = req.query;
+    const { prompt } = req.body;
     if (!prompt) {
       return res.status(400).json({ code: 400, message: "请输入prompt" });
     }
@@ -27,6 +27,7 @@ exports.aiFormHandler = async (req, res) => {
         2. 执行优化:
         - 目标: 在保留原有句式和核心意义的前提下，适配企业邮件发送要求（保持专业、清晰、信息完整，且返回字数大于30字）
         - 删除: 冗余副词、非必要修饰词及不影响语义的时间状语
+        - 如果你判断不是企业邮件，请返回原句并提示“请检查输入是否为企业邮件”,并且用" | 原句为"原句""与原句隔开
         - 调整: 提升正式度，确保语气礼貌得体，信息传达无歧义
         3. 输出格式: 仅优化后句子，无格式（纯文本`;
     const completion = await client.chat.completions.create({
