@@ -19,6 +19,7 @@ exports.getArticleList = async (req, res) => {
 
     const totalSql =
       "SELECT COUNT(*) AS total FROM articles WHERE title LIKE ?";
+    // 模糊搜索
     const [countRes] = await db.query(totalSql, [`%${title}%`]);
 
     res.send({

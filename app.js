@@ -1,5 +1,8 @@
 require("dotenv").config();
 
+// 为 openai 库提供全局 fetch polyfill
+globalThis.fetch = require("node-fetch");
+
 const express = require("express");
 const cors = require("cors");
 const router = require("./router/user");
